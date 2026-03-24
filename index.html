@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUNGDONG EMR - 정동병원 의료정보시스템</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>⚕ JUNGDONG EMR</h1>
+      <p>정동병원 의료정보시스템 v2.2</p>
+    </div>
+    <div style="background:#f0f4f8;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#5a6a7e">
+      <div style="font-weight:700;margin-bottom:6px;color:#1a2332">🖥 서버 연결 상태</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <span><span style="color:#2e7d32">●</span> EMR 서버 192.168.1.10</span>
+        <span><span style="color:#2e7d32">●</span> DB 192.168.1.11</span>
+        <span><span style="color:#2e7d32">●</span> PACS 192.168.1.20</span>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>아이디 (ID)</label>
+      <input id="login-id" class="form-control" type="text" placeholder="아이디 입력" autocomplete="username">
+    </div>
+    <div class="form-group" style="margin-bottom:8px">
+      <label>비밀번호</label>
+      <input id="login-pw" class="form-control" type="password" placeholder="비밀번호 입력" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="login-error" style="display:none;color:var(--danger);font-size:11px;margin-bottom:8px;padding:6px 10px;background:#ffebee;border-radius:4px"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;font-size:13px" onclick="doLogin()">로그인</button>
+    <p style="text-align:center;margin-top:12px;font-size:10px;color:#999">JUNGDONG EMR © 2026 | 정동병원 전용 | v1.0</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <h1>⚕ JUNGDONG EMR</h1>
+      <span id="sidebar-dept-label">원무접수</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar-initials">원</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name-display">접수담당자</div>
+        <div class="user-role" id="user-role-display">원무팀</div>
+      </div>
+      <button onclick="doLogout()" title="로그아웃" style="background:rgba(255,255,255,0.1);border:none;color:#a8bcd8;cursor:pointer;padding:4px 7px;border-radius:4px;font-size:13px;margin-left:4px;flex-shrink:0" onmouseover="this.style.background='rgba(229,57,53,0.3)';this.style.color='#ff8a80'" onmouseout="this.style.background='rgba(255,255,255,0.1)';this.style.color='#a8bcd8'">⏻</button>
+    </div>
+    <div class="nav-section" id="nav-menu"></div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <div class="topbar-dept" id="topbar-dept">원무접수</div>
+      <div class="topbar-search">
+        <span>🔍</span>
+        <input type="text" placeholder="환자 검색 (이름, 등록번호, 생년월일)" oninput="globalSearch(this.value)" id="global-search">
+      </div>
+      <button class="topbar-btn" onclick="openModal('modal-reception')">+ 환자 접수</button>
+      <button class="topbar-btn primary" onclick="showAlerts()">🔔 <span id="notif-badge" style="background:#e53935;color:#fff;padding:1px 5px;border-radius:10px;font-size:10px;display:none">0</span></button>
+      <div class="topbar-date" id="clock"></div>
+      <div style="width:1px;height:24px;background:var(--border);margin:0 4px"></div>
+      <button class="topbar-btn" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);gap:5px" title="로그아웃">
+        <span style="font-size:14px">⏻</span> 로그아웃
+      </button>
+    </div>
+    <div id="content">
+      <!-- 모든 스크린 여기에 -->
+      <div id="screen-dashboard" class="screen active"></div>
+      <div id="screen-reception" class="screen"></div>
+      <div id="screen-outpatient" class="screen"></div>
+      <div id="screen-emr" class="screen"></div>
+      <div id="screen-ward" class="screen"></div>
+      <div id="screen-or" class="screen"></div>
+      <div id="screen-pharmacy" class="screen"></div>
+      <div id="screen-pt" class="screen"></div>
+      <div id="screen-reservation" class="screen"></div>
+      <div id="screen-inventory" class="screen"></div>
+      <div id="screen-claim" class="screen"></div>
+      <div id="screen-stats" class="screen"></div>
+      <div id="screen-patients" class="screen"></div>
+      <div id="screen-health" class="screen"></div>
+      <div id="screen-meal" class="screen"></div>
+      <div id="screen-nonsurg" class="screen"></div>
+      <div id="screen-radiology" class="screen"></div>
+      <div id="screen-payment" class="screen"></div>
+      <div id="screen-nursing" class="screen"></div>
+      <div id="screen-lab" class="screen"></div>
+      <div id="screen-consent" class="screen"></div>
+      <div id="screen-staff" class="screen"></div>
+      <div id="screen-settings" class="screen"></div>
+      <div id="screen-users" class="screen"></div>
+      <div id="screen-finance" class="screen"></div>
+      <div id="screen-claim_mgmt" class="screen"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- 환자 접수 모달 -->
+<div class="modal-overlay" id="modal-reception">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">🏥 환자 접수</div>
+      <button class="modal-close" onclick="closeModal('modal-reception')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="reception-type-tabs">
+        <div class="tab active" onclick="setReceptionType('new',this)">🆕 신환 등록</div>
+        <div class="tab" onclick="setReceptionType('first',this)">🔍 기존 환자 검색</div>
+      </div>
+      <div id="reception-new-search" style="display:none;margin-bottom:12px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">👤 기존 환자 검색</div></div>
+          <div class="form-row">
+            <div class="form-group"><label>환자 이름</label><input class="form-control" type="text" placeholder="이름 입력" oninput="searchExistingPatient(this.value)"></div>
+            <div class="form-group"><label>생년월일 (6자리)</label><input class="form-control" type="text" placeholder="850315" maxlength="6"></div>
+            <div class="form-group"><label>등록번호</label><input class="form-control" type="text" placeholder="PT-2025-0001"></div>
+            <button class="btn btn-outline" style="align-self:flex-end" onclick="searchExistingPatient('')">검색</button>
+          </div>
+          <div id="existing-pt-results"></div>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:12px;margin-bottom:12px">
+        <div class="form-group">
+          <label>* 환자명</label>
+          <input class="form-control" id="pt-name" type="text" placeholder="홍길동" oninput="checkVisitType()">
+        </div>
+        <div class="form-group">
+          <label>* 주민등록번호 <span style="font-size:10px;color:var(--text-muted)">(기존 환자 자동 조회)</span></label>
+          <input class="form-control" id="pt-rrn" type="text" placeholder="000000-0000000" oninput="checkVisitType()">
+        </div>
+        <div class="form-group">
+          <label>* 성별</label>
+          <select class="form-control" id="pt-gender"><option value="">선택</option><option>남</option><option>여</option></select>
+        </div>
+        <div class="form-group">
+          <label>* 생년월일</label>
+          <input class="form-control" id="pt-dob" type="text" placeholder="YYYYMMDD">
+        </div>
+        <div class="form-group">
+          <label>연락처</label>
+          <input class="form-control" id="pt-phone" type="text" placeholder="010-0000-0000">
+        </div>
+        <div class="form-group">
+          <label>보험유형</label>
+          <select class="form-control" id="pt-insurance">
+            <option>건강보험</option><option>의료급여 1종</option><option>의료급여 2종</option>
+            <option>자동차보험</option><option>산재보험</option><option>비급여</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>* 진료과 선택</label>
+          <select class="form-control" id="pt-dept" onchange="updateDoctorList(this.value);checkVisitType()">
+            <option value="">진료과 선택</option>
+            <option value="ortho1">정형외과1</option>
+            <option value="ortho2">정형외과2</option>
+            <option value="neuro">신경외과</option>
+            <option value="internal">내과</option>
+            <option value="health">건강검진센터</option>
+            <option value="anesthesia">마취통증의학과</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>담당의</label>
+          <select class="form-control" id="pt-doctor"><option>-- 진료과 선택 후 --</option></select>
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label>주소</label>
+          <input class="form-control" type="text" placeholder="주소 입력">
+        </div>
+        <div class="form-group">
+          <label>보험증 번호</label>
+          <input class="form-control" type="text" placeholder="보험증 번호">
+        </div>
+        <div class="form-group">
+          <label>내원경로</label>
+          <select class="form-control">
+            <option>내원</option><option>전화예약</option><option>온라인 예약</option>
+            <option>타 병원 의뢰</option><option>응급</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 신환/초진/재진 자동 판별 결과 -->
+      <div id="visit-type-result" style="margin-bottom:12px"></div>
+
+      <div class="form-group">
+        <label>주소(Chief Complaint)</label>
+        <textarea class="form-control" placeholder="주소 및 증상 입력..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reception')">취소</button>
+      <button class="btn btn-primary" onclick="registerPatient()">✓ 접수 완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMR 진료 모달 -->
+<div class="modal-overlay" id="modal-emr">
+  <div class="modal" style="max-width:1100px;width:95%">
+    <div class="modal-header">
+      <div class="modal-title" id="emr-pt-title">EMR 진료 차트</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="badge badge-new" id="emr-pt-type">신환</span>
+        <button class="modal-close" onclick="closeModal('modal-emr')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <!-- 왼쪽: 차트 작성 -->
+      <div>
+        <div class="chart-block">
+          <div class="chart-block-header">활력징후 (Vital Signs)</div>
+          <div class="chart-block-body">
+            <div class="vital-grid">
+              <div class="vital-item">
+                <div class="vital-label">혈압</div>
+                <div style="display:flex;gap:3px;align-items:center;margin:4px 0 2px;justify-content:center">
+                  <input style="width:38px;border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:13px;font-weight:700;color:var(--primary);text-align:center;font-family:var(--mono)" value="120">
+                  <span style="font-size:10px;color:#999">/</span>
+                  <input style="width:38px;border:1px solid var(--border);border-radius:3px;padding:2px 4px;font-size:13px;font-weight:700;color:var(--primary);text-align:center;font-family:var(--mono)" value="80">
+                </div>
+                <div class="vital-unit">mmHg</div>
+              </div>
+              <div class="vital-item">
+                <div class="vital-label">맥박</div>
+                <input class="vital-value" style="width:60px;border:1px solid var(--border);border-radius:3px;padding:2px;text-align:center;margin:4px auto 2px;display:block;font-size:18px;font-weight:700;color:var(--primary);font-family:var(--mono)" value="72">
+                <div class="vital-unit">bpm</div>
+              </div>
+              <div class="vital-item">
+                <div class="vital-label">체온</div>
+                <input class="vital-value" style="width:60px;border:1px solid var(--border);border-radius:3px;padding:2px;text-align:center;margin:4px auto 2px;display:block;font-size:18px;font-weight:700;color:var(--primary);font-family:var(--mono)" value="36.5">
+                <div class="vital-unit">°C</div>
+              </div>
+              <div class="vital-item">
+                <div class="vital-label">호흡수</div>
+                <input class="vital-value" style="width:60px;border:1px solid var(--border);border-radius:3px;padding:2px;text-align:center;margin:4px auto 2px;display:block;font-size:18px;font-weight:700;color:var(--primary);font-family:var(--mono)" value="16">
+                <div class="vital-unit">/min</div>
+              </div>
+              <div class="vital-item">
+                <div class="vital-label">SpO₂</div>
+                <input class="vital-value" style="width:60px;border:1px solid var(--border);border-radius:3px;padding:2px;text-align:center;margin:4px auto 2px;display:block;font-size:18px;font-weight:700;color:var(--primary);font-family:var(--mono)" value="98">
+                <div class="vital-unit">%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-block">
+          <div class="chart-block-header">SOAP 진료기록</div>
+          <div class="chart-block-body">
+            <div style="margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span class="soap-label soap-S">S</span>
+                <span style="font-size:11px;font-weight:600;color:var(--text-light)">Subjective (주관적 증상)</span>
+              </div>
+              <textarea class="form-control" style="min-height:60px;font-size:12px" placeholder="주소, 현병력, 과거력...">요추부 통증 4일전부터, VAS 7/10, 앉아있을 때 악화, 걸을 때 방사통 (+) Lt. LE</textarea>
+            </div>
+            <div style="margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span class="soap-label soap-O">O</span>
+                <span style="font-size:11px;font-weight:600;color:var(--text-light)">Objective (객관적 소견)</span>
+              </div>
+              <textarea class="form-control" style="min-height:60px;font-size:12px" placeholder="이학적 검사, 검사결과...">SLR (+) Lt 60도, SLRT (+), Deep tendon reflex 정상, 요추부 압통 (+)</textarea>
+            </div>
+            <div style="margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span class="soap-label soap-A">A</span>
+                <span style="font-size:11px;font-weight:600;color:var(--text-light)">Assessment (진단)</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <input class="form-control" placeholder="상병코드 검색 (예: M51.1)" style="flex:1;font-size:12px">
+                <button class="btn btn-outline btn-sm">검색</button>
+              </div>
+              <div style="margin-top:6px">
+                <span style="display:inline-flex;align-items:center;gap:4px;background:#e3f2fd;border:1px solid #bbdefb;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:500;color:#1565c0;margin-right:4px;margin-bottom:4px">
+                  M51.1 요추 및 기타 추간판 변성 <span style="cursor:pointer;color:#999;margin-left:4px" onclick="this.parentElement.remove()">✕</span>
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:500;color:#2e7d32;margin-right:4px;margin-bottom:4px">
+                  M54.4 요추통 <span style="cursor:pointer;color:#999;margin-left:4px" onclick="this.parentElement.remove()">✕</span>
+                </span>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span class="soap-label soap-P">P</span>
+                <span style="font-size:11px;font-weight:600;color:var(--text-light)">Plan (치료계획)</span>
+              </div>
+              <textarea class="form-control" style="min-height:60px;font-size:12px" placeholder="처방, 치료계획...">X-ray L-spine AP/Lat 촬영, 물리치료 처방, 약물치료 (NSAID + 근이완제), 1주 후 f/u</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 오른쪽: 처방 -->
+      <div>
+        <div class="chart-block">
+          <div class="chart-block-header" style="display:flex;align-items:center;justify-content:space-between">
+            <span>처방 (Orders)</span>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-sm btn-outline" onclick="addRxTemplate()">📋 상용처방</button>
+              <button class="btn btn-sm btn-primary" onclick="addRx()">+ 추가</button>
+            </div>
+          </div>
+          <div class="chart-block-body">
+            <div class="tabs" style="margin-bottom:10px">
+              <div class="tab active">약물처방</div>
+              <div class="tab">검사의뢰</div>
+              <div class="tab">물리치료</div>
+              <div class="tab">수술의뢰</div>
+              <div class="tab">처치/시술</div>
+            </div>
+            <div id="rx-list">
+              <div class="rx-item">
+                <div class="rx-num">1</div>
+                <div style="flex:1">
+                  <div class="rx-name">록소프로펜나트륨정 60mg</div>
+                  <div class="rx-detail">1일 3회, 식후 30분 · 7일 · 경구</div>
+                </div>
+                <button class="rx-remove" onclick="this.closest('.rx-item').remove()">✕</button>
+              </div>
+              <div class="rx-item">
+                <div class="rx-num">2</div>
+                <div style="flex:1">
+                  <div class="rx-name">클로르족사존정 250mg</div>
+                  <div class="rx-detail">1일 2회, 식후 · 7일 · 경구</div>
+                </div>
+                <button class="rx-remove" onclick="this.closest('.rx-item').remove()">✕</button>
+              </div>
+              <div class="rx-item">
+                <div class="rx-num">3</div>
+                <div style="flex:1">
+                  <div class="rx-name">판토프라졸장용정 40mg</div>
+                  <div class="rx-detail">1일 1회, 아침 식전 30분 · 7일 · 경구</div>
+                </div>
+                <button class="rx-remove" onclick="this.closest('.rx-item').remove()">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-block">
+          <div class="chart-block-header">⚠ 심평원 청구 사전점검</div>
+          <div class="chart-block-body">
+            <div class="claim-warn warning">
+              <span class="claim-icon">⚠</span>
+              <div><strong>NSAID 장기처방 주의</strong><br>7일 이상 처방 시 위장관 보호제 병용 처방 권고 (현재: 판토프라졸 처방됨 ✓)</div>
+            </div>
+            <div class="claim-warn info">
+              <span class="claim-icon">ℹ</span>
+              <div><strong>X-ray 동일 부위 중복검사 확인</strong><br>최근 30일 내 동일 부위 촬영 기록 없음 ✓</div>
+            </div>
+            <div class="claim-warn error">
+              <span class="claim-icon">🚫</span>
+              <div><strong>근이완제 + 진통제 병용 특정내역 기재 필요</strong><br>JX999 특정내역 기재 후 청구 권고</div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-block">
+          <div class="chart-block-header">이전 진료 이력</div>
+          <div class="chart-block-body" style="padding:8px">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-date">-</div>
+                <div class="timeline-content">요추부 염좌. X-ray 촬영. 물리치료 처방. 약물처방.</div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-date">2024-12-03 (정형외과1)</div>
+                <div class="timeline-content">초진. L-spine X-ray. NSAID 처방.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-block" id="emr-radiology-panel">
+          <div class="chart-block-header" style="display:flex;align-items:center;justify-content:space-between">
+            <span>🩻 영상 검사 (연동)</span>
+            <button class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:10px" onclick="openRadiologyFromEMR()">+ 영상 의뢰</button>
+          </div>
+          <div class="chart-block-body" id="emr-radiology-list" style="display:flex;flex-direction:column;gap:8px">
+            <div style="color:var(--text-muted);font-size:11px;text-align:center;padding:8px">환자 선택 시 영상 목록이 표시됩니다</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" id="emr-modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-emr')">닫기</button>
+      <button class="btn btn-outline" onclick="saveDraft()">💾 임시저장</button>
+      <button class="btn btn-warning" onclick="openModal('modal-prescription')">🖨 처방전 출력</button>
+      <button class="btn btn-primary" onclick="saveEMR()">🔒 최종 저장 (잠금)</button>
+    </div>
+  </div>
+</div>
+
+<!-- 알림 모달 (DB.notifications 동적 렌더링) -->
+<div class="modal-overlay" id="modal-alerts">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">🔔 알림 / 공지</div>
+      <button class="modal-close" onclick="closeModal('modal-alerts')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-alerts-body" style="padding:0;max-height:60vh;overflow-y:auto">
+      <!-- JS renderAlertsModal()로 채워짐 -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="markAllNotifRead();closeModal('modal-alerts')">모두 읽음</button>
+      <button class="btn btn-danger" onclick="DB.notifications=[];renderAlertsModal();updateNotifBadge()">🗑 전체 삭제</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-alerts')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 알림 컨테이너 -->
+<div class="notif" id="notif-container"></div>
+
+<!-- ─── 수납 모달 (동적 환자별) ─── -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">💰 진료비 수납</div>
+      <button class="modal-close" onclick="closeModal('modal-payment')">✕</button>
+    </div>
+    <div class="modal-body" id="payment-modal-body">
+      <!-- JS로 동적 렌더링 -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-payment')">닫기</button>
+      <button class="btn btn-outline" onclick="printPaymentReceipt()">🖨 명세서 출력</button>
+      <button class="btn btn-primary" onclick="processPayment()" style="min-width:140px" id="pay-confirm-btn">✓ 수납 완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 간호기록 모달 ─── -->
+<div class="modal-overlay" id="modal-nursing">
+  <div class="modal" style="max-width:960px;width:95%">
+    <div class="modal-header">
+      <div class="modal-title">📋 간호기록</div>
+      <button class="modal-close" onclick="closeModal('modal-nursing')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="nursing-tabs">
+        <div class="tab active" onclick="switchNursingTab('vitals',this)">활력징후</div>
+        <div class="tab" onclick="switchNursingTab('notes',this)">간호일지</div>
+        <div class="tab" onclick="switchNursingTab('mar',this)">투약기록</div>
+        <div class="tab" onclick="switchNursingTab('intake',this)">I/O</div>
+        <div class="tab" onclick="switchNursingTab('wound',this)">상처/처치</div>
+      </div>
+      <div id="nursing-tab-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nursing')">닫기</button>
+      <button class="btn btn-primary" onclick="saveNursing()">✓ 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 검사결과 모달 ─── -->
+<div class="modal-overlay" id="modal-lab">
+  <div class="modal" style="max-width:800px;width:95%">
+    <div class="modal-header">
+      <div class="modal-title">🔬 검사 결과</div>
+      <button class="modal-close" onclick="closeModal('modal-lab')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <div class="tab active">CBC</div>
+        <div class="tab">혈액생화학</div>
+        <div class="tab">소변검사</div>
+        <div class="tab">응고검사</div>
+        <div class="tab">추이 그래프</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:11px;color:var(--text-muted)">검사일:</span>
+        <select class="form-control" style="width:auto;font-size:11px">
+          <option id="emr-history-latest">-</option>
+
+        </select>
+        <button class="btn btn-sm btn-outline">비교 보기</button>
+        <button class="btn btn-sm btn-ghost" onclick="closeModal('modal-lab');notify('검사 의뢰','검사실로 의뢰서를 전송합니다.','info')">+ 검사 의뢰</button>
+      </div>
+      <div style="overflow:auto;max-height:420px">
+        <table class="lab-table">
+          <thead><tr><th>검사 항목</th><th>결과</th><th>참고치</th><th>단위</th><th>판정</th><th>이전값</th></tr></thead>
+          <tbody id="lab-tbody">
+            <tr class="lab-section-row"><td colspan="6">▸ 혈구계산 (CBC)</td></tr>
+            <tr><td>WBC</td><td style="font-weight:700">7.8</td><td style="color:var(--text-muted);font-size:11px">4.0–10.0</td><td style="color:var(--text-muted);font-size:11px">×10³/μL</td><td><span style="color:var(--success);font-weight:700">정상</span></td><td style="color:var(--text-muted);font-size:11px">8.1</td></tr>
+            <tr class="lab-critical-row" style="background:#fff5f5"><td>Hgb</td><td class="lab-L" style="font-weight:800">9.2 ↓</td><td style="color:var(--text-muted);font-size:11px">13.0–17.0</td><td style="color:var(--text-muted);font-size:11px">g/dL</td><td><span class="lab-L">저하</span></td><td style="color:var(--text-muted);font-size:11px">10.1</td></tr>
+            <tr><td>Plt</td><td style="font-weight:700">185</td><td style="color:var(--text-muted);font-size:11px">150–400</td><td style="color:var(--text-muted);font-size:11px">×10³/μL</td><td><span style="color:var(--success);font-weight:700">정상</span></td><td style="color:var(--text-muted);font-size:11px">192</td></tr>
+            <tr class="lab-section-row"><td colspan="6">▸ 생화학</td></tr>
+            <tr><td>AST</td><td style="font-weight:700">28</td><td style="color:var(--text-muted);font-size:11px">0–40</td><td style="color:var(--text-muted);font-size:11px">U/L</td><td><span style="color:var(--success);font-weight:700">정상</span></td><td style="color:var(--text-muted);font-size:11px">25</td></tr>
+            <tr><td>ALT</td><td style="font-weight:700">35</td><td style="color:var(--text-muted);font-size:11px">0–40</td><td style="color:var(--text-muted);font-size:11px">U/L</td><td><span style="color:var(--success);font-weight:700">정상</span></td><td style="color:var(--text-muted);font-size:11px">32</td></tr>
+            <tr><td>Creatinine</td><td style="font-weight:700">1.0</td><td style="color:var(--text-muted);font-size:11px">0.7–1.2</td><td style="color:var(--text-muted);font-size:11px">mg/dL</td><td><span style="color:var(--success);font-weight:700">정상</span></td><td style="color:var(--text-muted);font-size:11px">0.9</td></tr>
+            <tr class="lab-critical-row" style="background:#fff5f5"><td>Glucose (FBS)</td><td class="lab-H" style="font-weight:800">285 ↑</td><td style="color:var(--text-muted);font-size:11px">70–100</td><td style="color:var(--text-muted);font-size:11px">mg/dL</td><td><span class="lab-H">⚠ 위험</span></td><td style="color:var(--text-muted);font-size:11px">241</td></tr>
+            <tr><td>HbA1c</td><td class="lab-H" style="font-weight:800">9.2% ↑</td><td style="color:var(--text-muted);font-size:11px">&lt;5.7%</td><td style="color:var(--text-muted);font-size:11px">%</td><td><span class="lab-H">상승</span></td><td style="color:var(--text-muted);font-size:11px">8.8%</td></tr>
+            <tr><td>CRP</td><td style="font-weight:700">0.4</td><td style="color:var(--text-muted);font-size:11px">&lt;0.5</td><td style="color:var(--text-muted);font-size:11px">mg/dL</td><td><span style="color:var(--success);font-weight:700">정상</span></td><td style="color:var(--text-muted);font-size:11px">0.6</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:#ffebee;border:1px solid #ffcdd2;border-radius:6px;font-size:12px">
+        <strong style="color:var(--danger)">⚠ 위험 수치 발견:</strong> Hgb 저하 (9.2) — 빈혈 확인 요망 | Glucose 285 — 당뇨 조절 불량, 즉시 주치의 보고
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-lab')">닫기</button>
+      <button class="btn btn-outline">📊 추이 차트</button>
+      <button class="btn btn-warning">⚠ 주치의 보고</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-lab');notify('출력','검사결과지를 출력합니다.','info')">🖨 결과지 출력</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 수술 체크리스트 모달 ─── -->
+<div class="modal-overlay" id="modal-surgery-checklist">
+  <div class="modal" style="max-width:720px;width:95%">
+    <div class="modal-header">
+      <div class="modal-title">✅ 수술 안전 체크리스트 — WHO Surgical Safety Checklist</div>
+      <button class="modal-close" onclick="closeModal('modal-surgery-checklist')">✕</button>
+    </div>
+    <div class="modal-body" id="surgery-checklist-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-surgery-checklist')">닫기</button>
+      <button class="btn btn-success" onclick="completeSurgeryChecklist()">✓ 서명 & 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 동의서 모달 ─── -->
+<div class="modal-overlay" id="modal-consent">
+  <div class="modal" style="max-width:740px;width:95%">
+    <div class="modal-header">
+      <div class="modal-title">📜 전자 동의서</div>
+      <button class="modal-close" onclick="closeModal('modal-consent')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" style="margin-bottom:16px">
+        <div class="tab active" onclick="switchConsentTab('surgery',this)">수술 동의서</div>
+        <div class="tab" onclick="switchConsentTab('anesthesia',this)">마취 동의서</div>
+        <div class="tab" onclick="switchConsentTab('personal',this)">개인정보 제공</div>
+        <div class="tab" onclick="switchConsentTab('photo',this)">사진/영상 동의</div>
+      </div>
+      <div id="consent-content">
+        <div class="consent-section">
+          <div class="consent-hdr">수술 동의서 — L4-5 후방 추간판 절제술 (PLIF) <span class="badge badge-done">서명완료</span></div>
+          <div class="consent-body">
+            본인은 담당 의사로부터 아래 수술의 목적, 방법, 예상되는 결과 및 합병증에 대해 충분한 설명을 들었으며, 이를 이해하고 수술 시행에 동의합니다.<br><br>
+            <strong>수술명:</strong> L4-5 후방 추간판 절제술 및 척추 유합술 (PLIF)<br>
+            <strong>수술 목적:</strong> 추간판 탈출로 인한 신경 압박 해소 및 척추 안정화<br>
+            <strong>예상 합병증:</strong> 감염, 출혈, 신경손상, 마취 관련 합병증, 인공물 관련 합병증 등
+            <div class="sign-area" onclick="notify('서명','디지털 서명 패드를 엽니다.','info')">
+              <span>✍ 서명됨 — 환자명 (서명일시) <span style="color:var(--success);font-weight:700">✓ 확인됨</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="consent-section">
+          <div class="consent-hdr">마취 동의서 <span class="badge badge-done">서명완료</span></div>
+          <div class="consent-body">
+            전신마취 시행에 따른 위험성 및 합병증에 대해 설명을 들었으며 동의합니다.
+            <div class="sign-area">
+              <span>✍ 서명됨 — 환자명 (서명일시) <span style="color:var(--success);font-weight:700">✓ 확인됨</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="consent-section">
+          <div class="consent-hdr">수혈 동의서 <span class="badge badge-waiting">서명대기</span></div>
+          <div class="consent-body">
+            수술 중 또는 수술 후 수혈이 필요할 수 있습니다.
+            <div class="sign-area" onclick="notify('서명','서명 패드를 엽니다.','info')" style="border-color:var(--warning);background:#fff8e1">
+              <span style="color:var(--warning)">✍ 서명을 클릭하세요</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-consent')">닫기</button>
+      <button class="btn btn-outline">📧 보호자 이메일 발송</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-consent');notify('동의서','동의서가 저장되었습니다.','success')">✓ 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 로그아웃 확인 모달 ─── -->
+<div class="modal-overlay" id="modal-logout">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title">⏻ 로그아웃</div>
+      <button class="modal-close" onclick="closeModal('modal-logout')">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:28px 24px">
+      <div style="font-size:40px;margin-bottom:12px">👤</div>
+      <div id="logout-user-name" style="font-size:15px;font-weight:700;margin-bottom:4px"></div>
+      <div id="logout-login-time" style="font-size:11px;color:var(--text-muted);margin-bottom:20px"></div>
+      <div style="font-size:13px;color:var(--text-light);margin-bottom:8px">로그아웃 하시겠습니까?</div>
+      <div style="font-size:11px;color:var(--text-muted)">저장되지 않은 내용은 사라질 수 있습니다.</div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-logout')" style="min-width:100px">취소</button>
+      <button class="btn btn-danger" onclick="confirmLogout()" style="min-width:100px">로그아웃</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 카드 결제 모달 (JS로 동적 생성) ─── -->
+<div class="modal-overlay" id="modal-card-reader">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header" style="background:#0d1b35;border-color:#1e3a5f">
+      <div class="modal-title" style="color:#fff">💳 카드 결제</div>
+      <button class="modal-close" style="color:#aaa" onclick="cancelCardReading()">✕</button>
+    </div>
+    <div class="modal-body" id="card-modal-body" style="padding:20px"></div>
+    <div class="modal-footer" style="background:#f8fafd">
+      <button class="btn btn-ghost" onclick="cancelCardReading()">취소</button>
+      <button class="btn btn-primary" onclick="simulateCardRead()" id="card-read-btn">💳 결제 시작</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 간편결제 모달 (JS로 동적 생성) ─── -->
+<div class="modal-overlay" id="modal-simple-pay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">📱 간편결제</div>
+      <button class="modal-close" onclick="closeSimplePay()">✕</button>
+    </div>
+    <div class="modal-body" id="simple-pay-body" style="padding:16px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSimplePay()">취소</button>
+      <button class="btn btn-primary" id="sp-request-btn" onclick="requestSimplePayQR()">QR 결제 요청</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 계정 생성/수정 모달 ─── -->
+<div class="modal-overlay" id="modal-create-user">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title" id="cu-modal-title">+ 새 계정 생성</div>
+      <button class="modal-close" onclick="closeModal('modal-create-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#fff3e0;border:1px solid #ffe082;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11px">
+        <strong>⚠ 보안 안내:</strong> 비밀번호는 8자 이상, 영문+숫자+특수문자를 포함해야 합니다. 생성된 계정 정보는 해당 직원에게 안전하게 전달하세요.
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>* 아이디 (로그인 ID)</label>
+          <input id="cu-username" class="form-control" placeholder="영문+숫자, 4~20자" oninput="checkUsernameAvail(this.value)">
+          <small id="cu-username-msg" style="font-size:10px;margin-top:2px"></small>
+        </div>
+        <div class="form-group">
+          <label>* 비밀번호</label>
+          <input id="cu-pw" class="form-control" type="password" placeholder="8자 이상, 영문+숫자+특수문자">
+        </div>
+        <div class="form-group">
+          <label>* 이름</label>
+          <input id="cu-name" class="form-control" placeholder="실명 입력">
+        </div>
+        <div class="form-group">
+          <label>* 권한/직책</label>
+          <select id="cu-role" class="form-control" onchange="autoDept(this.value)">
+            <option value="">권한 선택</option>
+            <optgroup label="── 최고 권한 ──">
+              <option value="hospital_director">🏥 병원장</option>
+              <option value="admin">🔧 시스템 관리자</option>
+            </optgroup>
+            <optgroup label="── 의사 ──">
+              <option value="doctor_ortho1">🦴 정형외과1 의사 (원장)</option>
+              <option value="doctor_ortho2">🦴 정형외과2 의사 (원장)</option>
+              <option value="doctor_neuro">🧠 신경외과 의사 (원장)</option>
+              <option value="doctor_internal">💊 내과 의사 (원장)</option>
+              <option value="doctor_radiology">🩻 영상의학과 의사</option>
+              <option value="nonsurg_doctor">💉 비수술치료 의사</option>
+            </optgroup>
+            <optgroup label="── 의료지원 ──">
+              <option value="nurse">💉 간호사</option>
+              <option value="pharmacist">💊 약사</option>
+              <option value="pt_therapist">🏃 물리치료사</option>
+              <option value="radiographer">📡 방사선사</option>
+            </optgroup>
+            <optgroup label="── 행정 ──">
+              <option value="reception">📝 원무 담당</option>
+              <option value="finance_staff">💵 재무 담당</option>
+              <option value="claim_staff">🏥 심사청구 담당</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>* 소속 부서</label>
+          <select id="cu-dept" class="form-control">
+            <option value="">부서 선택</option>
+            <option value="admin">관리부</option>
+            <option value="ortho1">정형외과1</option>
+            <option value="ortho2">정형외과2</option>
+            <option value="neuro">신경외과</option>
+            <option value="internal">내과</option>
+            <option value="health">건강검진센터</option>
+            <option value="pt">물리치료센터</option>
+            <option value="nonsurg">비수술치료센터</option>
+            <option value="or">수술실</option>
+            <option value="ward">병동</option>
+            <option value="pharmacy">약제실</option>
+            <option value="radiology">영상의학과</option>
+            <option value="reception">원무팀</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>이메일</label>
+          <input id="cu-email" class="form-control" type="email" placeholder="이메일@jungdong.kr">
+        </div>
+        <div class="form-group">
+          <label>연락처 (휴대폰)</label>
+          <input id="cu-phone" class="form-control" placeholder="010-0000-0000">
+        </div>
+        <div class="form-group">
+          <label>면허/자격번호</label>
+          <input id="cu-license" class="form-control" placeholder="의사면허 123456 등">
+        </div>
+        <div class="form-group">
+          <label>입사일</label>
+          <input id="cu-joindate" class="form-control" type="date">
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label>전문 분야 / 특이사항</label>
+          <input id="cu-spec" class="form-control" placeholder="예: 척추·관절 전문, 도수치료 전공 등">
+        </div>
+      </div>
+      <!-- 권한 미리보기 -->
+      <div id="cu-perm-preview" style="margin-top:12px;padding:10px 14px;background:#f0f4ff;border:1px solid #c5cae9;border-radius:6px;font-size:11px;display:none">
+        <strong style="color:var(--primary)">🔑 선택된 권한 미리보기:</strong>
+        <div id="cu-perm-list" style="margin-top:6px;line-height:2"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-user')">취소</button>
+      <button class="btn btn-primary" id="cu-save-btn" onclick="saveCreateUser()">✓ 계정 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Addendum (추가기재) 모달 ─── -->
+<div class="modal-overlay" id="modal-addendum">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header" style="background:#fff3e0;border-color:#ffe082">
+      <div class="modal-title" style="color:#bf360c">✏ 추가기재 (Addendum)</div>
+      <button class="modal-close" onclick="closeModal('modal-addendum')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- 법적 고지 -->
+      <div style="background:#fff3e0;border:1px solid #ffe082;border-radius:8px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:#bf360c;margin-bottom:6px">⚖ 의료법 제22조 — 추가기재(Addendum) 방식</div>
+        <div style="font-size:11px;color:#6d4c41;line-height:1.8">
+          • 원본 차트는 절대 수정·삭제되지 않으며 법적으로 영구 보존됩니다<br>
+          • 이 추가기재는 원본 아래에 새 레코드로 추가됩니다 (Append-only)<br>
+          • 추가기재 사유, 작성자, 일시가 차트에 영구 기록됩니다<br>
+          • 고의로 사실과 다르게 추가기재 시 의료법 제22조③항 위반 (형사처벌)
+        </div>
+      </div>
+
+      <!-- 차트 정보 -->
+      <div style="background:#f8fafd;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:14px">
+        <div style="font-weight:700;font-size:12px;margin-bottom:2px" id="adm-chart-info">차트 정보</div>
+        <div style="font-size:11px;color:var(--text-muted)" id="adm-chart-detail"></div>
+        <div id="adm-original-preview" style="margin-top:8px"></div>
+      </div>
+
+      <!-- 추가기재 사유 -->
+      <div class="grid-2" style="gap:10px;margin-bottom:12px">
+        <div class="form-group" style="grid-column:span 2">
+          <label style="font-weight:700;color:var(--danger)">* 추가기재 사유 분류</label>
+          <select class="form-control" id="adm-reason-category" onchange="checkAddendumReady()">
+            <option value="">사유 선택 (필수)</option>
+            <optgroup label="── 임상 추가기재 ──">
+              <option value="lab_result">검사 결과 확인 후 진단 보완</option>
+              <option value="consult_result">협진 결과 반영</option>
+              <option value="imaging_result">영상 판독 결과 반영</option>
+              <option value="clinical_clarify">임상 소견 보완·명확화</option>
+              <option value="vital_correction">활력징후 기재 오류 수정</option>
+            </optgroup>
+            <optgroup label="── 처방 추가기재 ──">
+              <option value="prescription_error">처방 용량·용법 오류 수정</option>
+              <option value="drug_add">약물 추가 처방</option>
+              <option value="drug_change">약물 변경 (부작용·효과 미흡)</option>
+              <option value="drug_stop">약물 중단</option>
+            </optgroup>
+            <optgroup label="── 행정·청구 관련 ──">
+              <option value="icd_correction">상병코드(ICD-10) 오류 수정</option>
+              <option value="claim_correction">청구 관련 진료내역 보완</option>
+              <option value="missing_record">누락된 진료행위 추가기재</option>
+            </optgroup>
+            <optgroup label="── 법적·행정 요청 ──">
+              <option value="patient_request">환자 요청 (의무기록 정정 청구)</option>
+              <option value="legal_request">법원·수사기관 요청</option>
+              <option value="qc_audit">의무기록 QC 감사 지적 사항</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label style="font-weight:700;color:var(--danger)">* 추가기재 사유 상세 (10자 이상)</label>
+          <textarea class="form-control" id="adm-reason-detail" style="min-height:70px"
+            placeholder="구체적인 추가기재 사유를 기재하세요.&#10;예: '검사 결과 수신 후 추가 진단 확인: HbA1c 9.2% → 제2형 당뇨병 병발 확인하여 진단 추가기재'"></textarea>
+          <div id="adm-warning" style="display:none;font-size:11px;color:var(--danger);margin-top:3px">추가기재 사유는 10자 이상 구체적으로 기재해야 합니다.</div>
+        </div>
+      </div>
+
+      <!-- 추가기재 내용 (변경된 항목만 입력) -->
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">
+        <div style="background:#f5f7fa;padding:8px 14px;font-size:11px;font-weight:700;color:var(--text-light);border-bottom:1px solid var(--border)">
+          ✏ 추가기재 내용 — 변경이 필요한 항목만 입력 (입력 없는 항목은 기존 내용 유지)
+        </div>
+        <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+          <div class="form-group" style="margin:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span class="soap-label soap-S">S</span>
+              <label style="margin:0;font-size:11px">주관적 증상 — 추가기재 내용</label>
+            </div>
+            <textarea class="form-control" id="adm-content-s" style="min-height:60px;font-size:12px"
+              placeholder="변경 내용 입력 (비워두면 기존 S 내용 유지)"></textarea>
+          </div>
+          <div class="form-group" style="margin:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span class="soap-label soap-A">A</span>
+              <label style="margin:0;font-size:11px">진단(Assessment) — 추가기재 내용</label>
+            </div>
+            <textarea class="form-control" id="adm-content-a" style="min-height:60px;font-size:12px"
+              placeholder="상병코드 추가·변경 등 (비워두면 기존 A 내용 유지)"></textarea>
+          </div>
+          <div class="form-group" style="margin:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span class="soap-label soap-P">P</span>
+              <label style="margin:0;font-size:11px">치료계획(Plan) — 추가기재 내용</label>
+            </div>
+            <textarea class="form-control" id="adm-content-p" style="min-height:60px;font-size:12px"
+              placeholder="처방 변경·추가 내용 (비워두면 기존 P 내용 유지)"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- 본인 인증 -->
+      <div style="background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:12px;display:flex;gap:8px;align-items:flex-end">
+        <div class="form-group" style="flex:1;margin:0">
+          <label style="font-weight:700;color:var(--danger)">* 본인 비밀번호 재인증</label>
+          <input class="form-control" id="adm-pw" type="password" placeholder="현재 비밀번호 입력 (보안 인증)">
+        </div>
+        <button class="btn btn-outline" onclick="verifyAddendumPW()" style="white-space:nowrap">인증</button>
+        <div id="adm-pw-status" style="font-size:11px;min-width:80px;align-self:center"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-addendum')">취소</button>
+      <button class="btn btn-warning" id="adm-confirm-btn" onclick="saveAddendum()" disabled style="opacity:0.5">✏ 추가기재 저장 (Addendum)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 예약 등록 모달 ─── -->
+<div class="modal-overlay" id="modal-reservation-add">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <div class="modal-title">📅 예약 등록</div>
+      <button class="modal-close" onclick="closeModal('modal-reservation-add')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2" style="gap:12px">
+        <!-- 환자 검색 -->
+        <div class="form-group" style="grid-column:span 2">
+          <label>환자 검색 (기존 환자)</label>
+          <div style="display:flex;gap:6px">
+            <input class="form-control" id="resv-pt-search" placeholder="환자명 또는 등록번호 (신환은 이름 직접 입력)">
+            <button class="btn btn-outline" onclick="searchResvPatient()">검색</button>
+          </div>
+          <div id="resv-pt-result" style="margin-top:4px"></div>
+        </div>
+        <!-- 날짜 + 진료과 -->
+        <div class="form-group">
+          <label>* 예약 날짜</label>
+          <input class="form-control" type="date" id="resv-date"
+            min="" onchange="refreshResvTimeSlots(this.value, document.getElementById('resv-dept').value)">
+        </div>
+        <div class="form-group">
+          <label>* 진료과</label>
+          <select class="form-control" id="resv-dept"
+            onchange="updateDoctorList(this.value);refreshResvTimeSlots(document.getElementById('resv-date').value,this.value)">
+            <option value="">선택</option>
+            <option value="ortho1">정형외과1</option>
+            <option value="ortho2">정형외과2</option>
+            <option value="neuro">신경외과</option>
+            <option value="internal">내과·건강검진</option>
+            <option value="anesthesia">마취통증의학과</option>
+            <option value="health">건강검진센터 (08:30~)</option>
+          </select>
+        </div>
+        <!-- 시간 슬롯 -->
+        <div class="form-group" style="grid-column:span 2">
+          <label>* 예약 시간 <small style="color:var(--text-muted);font-weight:400">(선택한 날짜·진료과 기준 / 파란색=가능, 회색=마감)</small></label>
+          <input type="hidden" id="resv-time">
+          <div id="resv-time-slots" style="margin-top:6px;min-height:40px">
+            <div style="color:var(--text-muted);font-size:11px">날짜와 진료과를 먼저 선택하세요</div>
+          </div>
+        </div>
+        <!-- 담당의 + 예약 구분 -->
+        <div class="form-group">
+          <label>담당의</label>
+          <select class="form-control" id="resv-doctor">
+            <option>-- 진료과 선택 후 --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>예약 구분</label>
+          <select class="form-control" id="resv-type">
+            <option value="재진">재진</option>
+            <option value="초진">초진</option>
+            <option value="신환">신환</option>
+            <option value="검진">건강검진</option>
+          </select>
+        </div>
+        <!-- 연락처 + 알림 -->
+        <div class="form-group">
+          <label>연락처</label>
+          <input class="form-control" id="resv-phone" placeholder="010-0000-0000">
+        </div>
+        <div class="form-group">
+          <label>알림 방법</label>
+          <select class="form-control" id="resv-notify">
+            <option value="kakao">💬 카카오톡 알림</option>
+            <option value="sms">📱 SMS</option>
+            <option value="call">📞 전화</option>
+            <option value="none">없음</option>
+          </select>
+        </div>
+        <!-- 메모 -->
+        <div class="form-group" style="grid-column:span 2">
+          <label>예약 메모</label>
+          <textarea class="form-control" id="resv-memo" style="min-height:56px"
+            placeholder="증상, 요청사항 등 (카카오 예약 시 환자 입력 내용이 여기 표시)"></textarea>
+        </div>
+      </div>
+      <!-- 진료시간 안내 -->
+      <div style="background:#e3f2fd;border-radius:6px;padding:8px 12px;font-size:11px;color:#1565c0;margin-top:4px">
+        ⏰ <strong>진료시간:</strong> 주중 09:00~18:00 (점심 13:00~14:00) | 토요일 09:00~13:00 | 건강검진 08:30~
+        <span style="margin-left:8px">🔴 공휴일·일요일 휴진</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reservation-add')">취소</button>
+      <button class="btn btn-primary" onclick="saveReservation()">✓ 예약 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 처방전 출력 모달 ─── -->
+<div class="modal-overlay" id="modal-prescription">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">🖨 처방전 / 진료확인서</div>
+      <button class="modal-close" onclick="closeModal('modal-prescription')">✕</button>
+    </div>
+    <div class="modal-body" id="prescription-body">
+      <div style="border:1px solid var(--border);border-radius:8px;padding:20px;background:#fff;font-family:var(--mono)" id="prescription-print-area">
+        <div style="text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #000">
+          <div style="font-size:18px;font-weight:900;letter-spacing:2px">처 방 전</div>
+          <div style="font-size:11px;color:#666;margin-top:4px">(「의약분업 예외 적용」처방전)</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:11px">
+          <div style="border:1px solid #ccc;padding:6px 10px"><span style="color:#666">요양기관</span> 정동병원 (12345678)</div>
+          <div style="border:1px solid #ccc;padding:6px 10px"><span style="color:#666">처방의사</span> <span id="prx-doctor-name">-</span></div>
+          <div style="border:1px solid #ccc;padding:6px 10px"><span style="color:#666">환자성명</span> <span id="prx-pt-name">-</span></div>
+          <div style="border:1px solid #ccc;padding:6px 10px"><span style="color:#666">생년월일</span> <span id="prx-pt-dob">-</span></div>
+          <div style="border:1px solid #ccc;padding:6px 10px"><span style="color:#666">상병코드</span> M54.5 / M51.1</div>
+          <div style="border:1px solid #ccc;padding:6px 10px"><span style="color:#666">처방일자</span> <span id="prx-date">-</span></div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px">
+          <thead><tr style="background:#f5f5f5">
+            <th style="border:1px solid #ccc;padding:5px 8px">약품명</th>
+            <th style="border:1px solid #ccc;padding:5px 8px">용량</th>
+            <th style="border:1px solid #ccc;padding:5px 8px">1일투여횟수</th>
+            <th style="border:1px solid #ccc;padding:5px 8px">총투여일수</th>
+            <th style="border:1px solid #ccc;padding:5px 8px">용법</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="border:1px solid #ccc;padding:5px 8px">록소프로펜나트륨정 60mg</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">1정</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">3회</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">7일</td><td style="border:1px solid #ccc;padding:5px 8px">식후 30분</td></tr>
+            <tr><td style="border:1px solid #ccc;padding:5px 8px">클로르족사존정 250mg</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">1정</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">2회</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">7일</td><td style="border:1px solid #ccc;padding:5px 8px">식후</td></tr>
+            <tr><td style="border:1px solid #ccc;padding:5px 8px">판토프라졸장용정 40mg</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">1정</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">1회</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:center">7일</td><td style="border:1px solid #ccc;padding:5px 8px">아침 식전 30분</td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;padding-top:8px;border-top:1px solid #ccc">
+          <span>의료기관: 정동병원 ☎ 02-1234-5678</span>
+          <span>사용기간: 처방일로부터 3일 이내</span>
+        </div>
+        <div style="margin-top:16px;text-align:right;font-size:11px">
+          <div style="margin-bottom:20px">처방의사 서명: ___________________</div>
+          <div>날짜: 2025년 01월 21일</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-prescription')">닫기</button>
+      <button class="btn btn-outline" onclick="notify('팩스','팩스 전송을 시작합니다.','info')">📠 팩스 전송</button>
+      <button class="btn btn-primary" onclick="window.print();closeModal('modal-prescription')">🖨 인쇄</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 입원 등록 모달 ─── -->
+<div class="modal-overlay" id="modal-admit">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">🛏 입원 등록</div>
+      <button class="modal-close" onclick="closeModal('modal-admit')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div>
+          <div class="form-group" style="margin-bottom:10px"><label>* 환자 검색</label>
+            <div style="display:flex;gap:6px">
+              <input class="form-control" id="admit-pt-search" placeholder="환자명 또는 등록번호" oninput="searchAdmitPatient(this.value)">
+              <button class="btn btn-outline">검색</button>
+            </div>
+            <div id="admit-pt-result"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>* 입원 병동/병실</label>
+              <select class="form-control" id="admit-bed">
+                <option value="">-- 비어있는 병상 선택 --</option>
+              </select>
+              <div style="font-size:10px;color:var(--text-muted);margin-top:3px">현재 비어있는 병상만 표시됩니다</div>
+            </div>
+            <div class="form-group"><label>* 담당의</label>
+              <select class="form-control" id="admit-doctor">
+                <option value="">-- 담당의 선택 --</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px"><label>* 입원 사유 / 진단명</label>
+            <input class="form-control" id="admit-diagnosis" placeholder="예: L4-5 추간판 탈출증 수술 예정">
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>입원 유형</label>
+              <select class="form-control">
+                <option>정규 입원</option><option>응급 입원</option><option>수술 전 입원</option><option>관찰 입원</option>
+              </select>
+            </div>
+            <div class="form-group"><label>보험 유형</label>
+              <select class="form-control"><option>건강보험</option><option>의료급여 1종</option><option>자동차보험</option><option>산재</option></select>
+            </div>
+          </div>
+        </div>
+        <div>
+          <!-- 식단 처방 (끼니별 개별) -->
+          <div class="form-group" style="margin-bottom:10px">
+            <label>식단 처방 <small style="color:var(--text-muted);font-weight:400">(끼니별 개별 설정 가능)</small></label>
+            <div style="display:grid;grid-template-columns:60px 1fr 60px 1fr;gap:5px 8px;align-items:center;font-size:12px">
+              <span style="font-weight:600;color:var(--text-muted)">🌅 아침</span>
+              <select class="form-control" id="admit-diet-breakfast" style="font-size:12px">
+                <option value="normal">일반식</option><option value="diabetic">당뇨식</option>
+                <option value="soft">연식</option><option value="lowsalt">저염식</option><option value="npo">금식</option>
+              </select>
+              <span style="font-weight:600;color:var(--text-muted)">☀ 점심</span>
+              <select class="form-control" id="admit-diet-lunch" style="font-size:12px">
+                <option value="normal">일반식</option><option value="diabetic">당뇨식</option>
+                <option value="soft">연식</option><option value="lowsalt">저염식</option><option value="npo">금식</option>
+              </select>
+              <span style="font-weight:600;color:var(--text-muted)">🌙 저녁</span>
+              <select class="form-control" id="admit-diet-dinner" style="font-size:12px">
+                <option value="normal">일반식</option><option value="diabetic">당뇨식</option>
+                <option value="soft">연식</option><option value="lowsalt">저염식</option><option value="npo">금식</option>
+              </select>
+              <span></span>
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px"
+                onclick="['breakfast','lunch','dinner'].forEach(function(m){document.getElementById('admit-diet-'+m).value=document.getElementById('admit-diet-breakfast').value})">전체 동일 적용</button>
+            </div>
+          </div>
+          <!-- 보호자 정보 + 보호자식 -->
+          <div class="form-group" style="margin-bottom:10px">
+            <label>보호자 정보</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <input class="form-control" id="admit-guardian-name" placeholder="보호자명">
+              <input class="form-control" id="admit-guardian-rel" placeholder="관계 (예: 배우자)">
+              <input class="form-control" id="admit-guardian-phone" placeholder="연락처">
+              <div style="display:flex;align-items:center;gap:6px">
+                <label style="font-size:12px;font-weight:600;white-space:nowrap">보호자식</label>
+                <select class="form-control" id="admit-companion-meal" style="font-size:12px">
+                  <option value="0">신청 안함</option>
+                  <option value="1">1식/일</option>
+                  <option value="2">2식/일</option>
+                  <option value="3">3식/일 (전식)</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px">보호자식: 1식 5,000원 / 수납 후 이용</div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px"><label>알레르기 / 특이사항</label>
+            <textarea class="form-control" style="min-height:70px" placeholder="약물 알레르기, 금기사항, 감염여부 등"></textarea>
+          </div>
+          <div style="padding:10px;background:#fff3e0;border:1px solid #ffe082;border-radius:6px;font-size:11px;color:#e65100">
+            <strong>📋 입원 동의서</strong> 발행 필요 — 입원 등록 후 원무에서 동의서 서명 진행
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-admit')">취소</button>
+      <button class="btn btn-primary" onclick="registerAdmission()">✓ 입원 등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 알림 컨테이너 ─── -->
+<div class="notif" id="notif-container"></div>
+<div class="modal-overlay" id="modal-dicom">
+  <div class="modal" style="max-width:1200px;width:97%;max-height:96vh">
+    <div class="modal-header" style="background:#0d1b35;border-color:#1e3a5f">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="modal-title" style="color:#fff" id="dicom-modal-title">🩻 영상 뷰어</div>
+        <span class="modality-badge modality-xray" id="dicom-modal-modality">X-RAY</span>
+        <span id="dicom-modal-body" style="color:#90caf9;font-size:12px;font-family:var(--mono)">L-SPINE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="dicom-modal-ptinfo" style="color:#a8bcd8;font-size:11px"></span>
+        <button class="modal-close" style="color:#aaa" onclick="closeModal('modal-dicom')">✕</button>
+      </div>
+    </div>
+    <div style="display:flex;height:calc(96vh - 110px);background:#0a0a14;overflow:hidden">
+      <!-- 썸네일 사이드바 -->
+      <div class="dicom-sidebar" id="dicom-sidebar"></div>
+      <!-- 메인 뷰어 -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <!-- 툴바 -->
+        <div class="dicom-toolbar">
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="dicom-btn active" id="tool-pan" onclick="setTool('pan')">✋ 이동</button>
+            <button class="dicom-btn" id="tool-zoom" onclick="setTool('zoom')">🔍 확대</button>
+            <button class="dicom-btn" id="tool-wl" onclick="setTool('wl')">☀ 윈도우</button>
+            <button class="dicom-btn" id="tool-measure" onclick="setTool('measure')">📏 측정</button>
+            <button class="dicom-btn" id="tool-annotate" onclick="setTool('annotate')">✏ 주석</button>
+          </div>
+          <div style="width:1px;height:24px;background:rgba(255,255,255,0.2);margin:0 4px"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:#aaa;font-size:10px;font-family:var(--mono)">밝기</span>
+            <input type="range" min="-100" max="100" value="0" id="brightness-slider" oninput="adjustBrightness(this.value)" style="width:80px;accent-color:var(--accent)">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:#aaa;font-size:10px;font-family:var(--mono)">대비</span>
+            <input type="range" min="50" max="200" value="100" id="contrast-slider" oninput="adjustContrast(this.value)" style="width:80px;accent-color:var(--accent)">
+          </div>
+          <div style="display:flex;gap:4px;margin-left:auto">
+            <button class="dicom-btn" onclick="resetView()">↺ 초기화</button>
+            <button class="dicom-btn" onclick="invertImage()">⬛ 반전</button>
+            <button class="dicom-btn" onclick="rotateImage()">↻ 90°</button>
+            <button class="dicom-btn" onclick="flipHorizontal()">↔ 좌우반전</button>
+            <button class="dicom-btn" onclick="zoomIn()">＋</button>
+            <button class="dicom-btn" onclick="zoomOut()">－</button>
+            <button class="dicom-btn" onclick="fullscreen()">⛶ 전체화면</button>
+          </div>
+        </div>
+        <!-- 영상 캔버스 -->
+        <div class="dicom-canvas-wrap" id="dicom-canvas-wrap" style="flex:1">
+          <canvas id="dicom-canvas" style="max-width:100%;max-height:100%;cursor:crosshair"></canvas>
+          <div class="dicom-info-overlay" id="dicom-info-top-left"></div>
+          <div class="dicom-info-overlay-right" id="dicom-info-top-right"></div>
+          <div id="dicom-annotations-layer" style="position:absolute;inset:0;pointer-events:none"></div>
+          <!-- 방향 표시 -->
+          <div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);color:rgba(255,255,255,0.5);font-size:11px;font-family:var(--mono);font-weight:700" id="dicom-dir-L">L</div>
+          <div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);color:rgba(255,255,255,0.5);font-size:11px;font-family:var(--mono);font-weight:700" id="dicom-dir-R">R</div>
+          <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:11px;font-family:var(--mono);font-weight:700" id="dicom-dir-S">S</div>
+          <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:11px;font-family:var(--mono);font-weight:700" id="dicom-dir-I">I</div>
+        </div>
+        <!-- 슬라이스 바 (CT/MRI) -->
+        <div class="dicom-slice-bar" id="dicom-slice-bar" style="display:none">
+          <label>슬라이스</label>
+          <input type="range" min="1" max="20" value="1" id="slice-slider" oninput="changeSlice(this.value)">
+          <span id="slice-label">1 / 20</span>
+          <div style="width:1px;height:20px;background:rgba(255,255,255,0.15);margin:0 8px"></div>
+          <label>WW</label><input type="number" value="400" style="width:50px;background:#222;border:1px solid #444;color:#fff;border-radius:3px;padding:2px 4px;font-size:11px;font-family:var(--mono)">
+          <label style="margin-left:8px">WL</label><input type="number" value="40" style="width:50px;background:#222;border:1px solid #444;color:#fff;border-radius:3px;padding:2px 4px;font-size:11px;font-family:var(--mono)">
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="dicom-btn" onclick="playSlices()">▶ 재생</button>
+            <button class="dicom-btn">⏸ 정지</button>
+          </div>
+        </div>
+      </div>
+      <!-- 판독 패널 -->
+      <div style="width:300px;flex-shrink:0;background:#0d1b35;display:flex;flex-direction:column;border-left:1px solid #1e3a5f;overflow-y:auto">
+        <div style="padding:12px;border-bottom:1px solid #1e3a5f">
+          <div style="color:#a8bcd8;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">판독 정보</div>
+          <div style="display:flex;flex-direction:column;gap:6px" id="dicom-reading-info"></div>
+        </div>
+        <div style="padding:12px;flex:1;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="color:#a8bcd8;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">소견 (Findings)</div>
+            <textarea id="dicom-findings" style="width:100%;min-height:120px;background:#111827;border:1px solid #1e3a5f;color:#e0e0e0;border-radius:4px;padding:8px;font-size:11px;font-family:var(--font);resize:vertical;outline:none;line-height:1.6" placeholder="영상 소견을 입력하세요..."></textarea>
+          </div>
+          <div>
+            <div style="color:#a8bcd8;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">결론 (Conclusion / Impression)</div>
+            <textarea id="dicom-conclusion" style="width:100%;min-height:80px;background:#111827;border:1px solid #1e3a5f;color:#e0e0e0;border-radius:4px;padding:8px;font-size:11px;font-family:var(--font);resize:vertical;outline:none;line-height:1.6" placeholder="판독 결론을 입력하세요..."></textarea>
+          </div>
+          <div>
+            <div style="color:#a8bcd8;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">비교 이전 영상</div>
+            <div id="dicom-prior-studies" style="font-size:11px;color:#6b7a99"></div>
+          </div>
+          <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
+            <button class="btn btn-success" style="justify-content:center" onclick="saveReading()">✓ 판독 완료 저장</button>
+            <button class="btn btn-outline" style="justify-content:center;border-color:#1e3a5f;color:#a8bcd8" onclick="requestConsult()">👨‍⚕️ 협진 요청</button>
+            <button class="btn" style="background:#1e3a5f;color:#a8bcd8;border-color:#1e3a5f;justify-content:center" onclick="printReport()">🖨 판독문 출력</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+    '</body></html>'
+<script src="app.js"></script>
+</body>
+</html>
