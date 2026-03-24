@@ -590,12 +590,12 @@ const MENUS = {
     { icon:'🔪', label:'수술실', screen:'or' },
     { icon:'📦', label:'재고 관리', screen:'inventory' },
     { icon:'💰', label:'수납/청구', screen:'payment' },
-    { icon:'📊', label:'통계', screen:'stats' },
-    { icon:'📅', label:'예약 관리', screen:'reservation' },
+    { icon:'�', label:'예약 관리', screen:'reservation' },
     { icon:'🍽', label:'식단/조리실', screen:'meal' },
     { icon:'🩻', label:'영상의학', screen:'radiology' },
-    { icon:'💵', label:'재무 관리', screen:'finance' },
     { icon:'🏥', label:'심사청구', screen:'claim_mgmt' },
+    { icon:'💵', label:'재무 관리', screen:'finance' },
+    { icon:'📊', label:'통계', screen:'stats' },
     { icon:'👨‍⚕️', label:'직원 관리', screen:'staff' },
     { icon:'🔑', label:'계정 관리', screen:'users' },
     { icon:'⚙', label:'시스템 설정', screen:'settings' },
@@ -692,8 +692,8 @@ function buildNav(dept, role) {
     // 병원장 = 정형외과1 진료 메뉴 + 병원 전체 관리 메뉴 통합
     const doctorMenus = (MENUS['ortho1'] || []).map(m => m);
     const adminOnlyMenus = [
-      { icon:'💵', label:'재무 관리', screen:'finance' },
       { icon:'🏥', label:'심사청구', screen:'claim_mgmt' },
+      { icon:'💵', label:'재무 관리', screen:'finance' },
       { icon:'📊', label:'통계', screen:'stats' },
       { icon:'📦', label:'재고 관리', screen:'inventory' },
       { icon:'🔪', label:'수술실', screen:'or' },
