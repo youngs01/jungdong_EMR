@@ -116,6 +116,22 @@ const API = {
   delete: (ep)         => API.call('DELETE', ep),
 };
 
+// 앱 전역 설정
+window.LOGO_URL = window.LOGO_URL || 'logo.svg';
+
+function setLogoUrl(url) {
+  if (!url) return;
+  window.LOGO_URL = url;
+  var loginLogo = document.getElementById('logo-img-login');
+  if (loginLogo) loginLogo.src = url;
+  var sidebarLogo = document.getElementById('logo-img-sidebar');
+  if (sidebarLogo) sidebarLogo.src = url;
+}
+
+function applyLogoUrl() {
+  setLogoUrl(window.LOGO_URL);
+}
+
 // ─── 부서간 API 이벤트 버스 ──────────────────────────────
 const EventBus = {
   listeners: {},
@@ -592,8 +608,8 @@ const MENUS = {
     { icon:'📅', label:'예약 관리', screen:'reservation' },
     { icon:'🩻', label:'영상의학', screen:'radiology' },
     { icon:'🏥', label:'심사청구', screen:'claim_mgmt' },
-    { icon:'💊', label:'약제실', screen:'pharmacy' },
     { icon:'🍽', label:'식단/조리실', screen:'meal' },
+    { icon:'💊', label:'약제실', screen:'pharmacy' },
     { icon:'📦', label:'재고 관리', screen:'inventory' },
     { icon:'💵', label:'재무 관리', screen:'finance' },
     { icon:'📊', label:'통계', screen:'stats' },
@@ -6277,6 +6293,7 @@ function fullscreen() {
 
 // Canvas mouse events
 document.addEventListener('DOMContentLoaded', () => {
+  applyLogoUrl();
   const canvas = document.getElementById('dicom-canvas');
   if(!canvas) return;
   canvas.addEventListener('mousedown', (e) => {
