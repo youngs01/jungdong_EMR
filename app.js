@@ -89,7 +89,7 @@ const API = {
     if (endpoint === this.endpoints.dashboard) {
       var labCritical = (DB.labResults||[]).filter(l => l.status==='critical' || l.flag==='abnormal').length;
       var pharmacyWait = (DB.prescriptions||[]).filter(p => p.status==='waiting' || p.status==='dur_check').length;
-      var alertList = (DB.notifications||[]).filter(n => !n.read && ['lab_critical','dur_warning','vital_alert','stock_low'].includes(n.type));
+      var alertList = (DB.notifications||[]).filter(n => !n.read && ['lab_critical','dur_warning','vital_alert','stock_low','pharmacy_ready'].includes(n.type));
       var alertExamples = alertList.slice(0,2).map(n => n.message || n.text || '알림');
       return new Promise(resolve => {
         setTimeout(() => resolve({
@@ -586,14 +586,15 @@ const MENUS = {
     { icon:'📝', label:'오늘 접수', screen:'reception' },
     { icon:'👥', label:'환자 관리', screen:'patients' },
     { icon:'🏥', label:'외래 현황', screen:'outpatient' },
+    { icon:'�', label:'수납/청구', screen:'payment' },
     { icon:'🛏', label:'병동 현황', screen:'ward' },
     { icon:'🔪', label:'수술실', screen:'or' },
-    { icon:'📦', label:'재고 관리', screen:'inventory' },
-    { icon:'💰', label:'수납/청구', screen:'payment' },
-    { icon:'�', label:'예약 관리', screen:'reservation' },
-    { icon:'🍽', label:'식단/조리실', screen:'meal' },
+    { icon:'📅', label:'예약 관리', screen:'reservation' },
     { icon:'🩻', label:'영상의학', screen:'radiology' },
     { icon:'🏥', label:'심사청구', screen:'claim_mgmt' },
+    { icon:'💊', label:'약제실', screen:'pharmacy' },
+    { icon:'🍽', label:'식단/조리실', screen:'meal' },
+    { icon:'📦', label:'재고 관리', screen:'inventory' },
     { icon:'💵', label:'재무 관리', screen:'finance' },
     { icon:'📊', label:'통계', screen:'stats' },
     { icon:'👨‍⚕️', label:'직원 관리', screen:'staff' },
@@ -3131,7 +3132,9 @@ function renderPharmacy(el) {
       '<td>' +
         '<div class="btn-group">' +
           '<button class="btn btn-sm btn-outline" onclick="openPrescriptionDetail(\'' + r.id + '\')">처방 확인</button>' +
-          (r.status!=='completed'?'<button class="btn btn-sm btn-primary" onclick="completeDispense(\'' + r.id + '\')">조제 완료</button>':'') +
+          (r.status==='waiting' && r.durWarning ? '<button class="btn btn-sm btn-warning" onclick="confirmDUR(\'' + r.id + '\')">DUR 확인</button>' :
+           r.status==='waiting' && !r.durWarning ? '<button class="btn btn-sm btn-info" onclick="startDispense(\'' + r.id + '\')">조제 시작</button>' :
+           r.status==='dispensing' ? '<button class="btn btn-sm btn-primary" onclick="completeDispense(\'' + r.id + '\')">조제 완료</button>' : '') +
         '</div>' +
       '</td>' +
     '</tr>';
@@ -7803,8 +7806,47 @@ function completeDispense(prxId) {
     user:SESSION.user?SESSION.user.username:'-',prxId:prxId});
   updateNotifBadge();
   notify('조제 완료', prx.ptName+' '+prx.id+' 조제 완료. 재고 자동 차감됨.', 'success');
+  // 환자 호출 알림
+  DB.notifications.push({
+    id:'NTF-'+Date.now(), type:'pharmacy_ready', level:'info',
+    message:'약 조제 완료: '+prx.ptName+' — 창구에서 수령하세요.',
+    time:new Date().toISOString(), read:false,
+  });
+  updateNotifBadge();
   renderScreen('pharmacy');
 }
+
+function confirmDUR(prxId) {
+  var prx = (DB.prescriptions||[]).find(function(p){return p.id===prxId;});
+  if(!prx) { notify('오류','처방을 찾을 수 없습니다.','error'); return; }
+  if(!prx.durWarning) { notify('안내','DUR 경고가 없습니다.','info'); return; }
+
+  // DUR 확인 모달 또는 간단 확인
+  if(confirm(prx.ptName + '의 DUR 경고를 확인하셨습니까?\n\n경고: ' + (prx.durMessage||'알 수 없음'))) {
+    prx.status = 'dispensing';
+    prx.durConfirmedAt = new Date().toISOString();
+    prx.durConfirmedBy = SESSION.user ? SESSION.user.name : '-';
+    DB.auditLog.push({time:new Date().toISOString(),action:'DUR_CONFIRMED',
+      user:SESSION.user?SESSION.user.username:'-',prxId:prxId});
+    notify('DUR 확인', prx.ptName+' DUR 확인 완료. 조제를 시작하세요.', 'info');
+    renderScreen('pharmacy');
+  }
+}
+
+function startDispense(prxId) {
+  var prx = (DB.prescriptions||[]).find(function(p){return p.id===prxId;});
+  if(!prx) { notify('오류','처방을 찾을 수 없습니다.','error'); return; }
+  if(prx.status !== 'waiting') { notify('안내','이미 조제 중이거나 완료된 처방입니다.','info'); return; }
+
+  prx.status = 'dispensing';
+  prx.dispenseStartedAt = new Date().toISOString();
+  prx.dispenseStartedBy = SESSION.user ? SESSION.user.name : '-';
+  DB.auditLog.push({time:new Date().toISOString(),action:'DISPENSE_START',
+    user:SESSION.user?SESSION.user.username:'-',prxId:prxId});
+  notify('조제 시작', prx.ptName+' 조제를 시작합니다.', 'info');
+  renderScreen('pharmacy');
+}
+
 function completeProcedure() { notify('시술 완료', '시술이 완료되었습니다.', 'success'); }
 function cancelRecept(id) { notify('접수 취소', id + ' 접수가 취소되었습니다.', 'warning'); }
 function adjustStock(code) { openStockInModal(code); }
@@ -8167,7 +8209,6 @@ function renderUserManagement(el) {
       <button class="btn btn-primary" onclick="openCreateUserModal()">+ 계정 생성</button>
       <button class="btn btn-outline" onclick="exportUsers()">📊 내보내기</button>
       <button class="btn btn-ghost" onclick="renderHandoverHistory(document.getElementById('screen-users'))">🔄 인수인계 이력</button>
-      <button class="btn btn-danger" onclick="confirmBatchDeleteTest()" style="font-size:11px">🗑 테스트계정 일괄삭제</button>
     </div>
   </div>
 
@@ -8716,44 +8757,6 @@ function resetPassword(uid) {
 }
 function exportUsers() { notify('내보내기', '사용자 목록을 CSV로 내보냅니다.', 'info'); }
 
-// ─── 테스트 계정 일괄 삭제 ──────────────────────────────
-function confirmBatchDeleteTest() {
-  // 진료이력 없고, 관리자/병원장 아닌 계정 목록
-  var deletable = DB.users.filter(function(u) {
-    if (['admin','hospital_director'].includes(u.role)) return false;
-    if (SESSION.user && u.id === SESSION.user.id) return false;
-    var hasCharts = DB.emrCharts.some(function(c){ return c.lockedBy === u.id; });
-    var hasVisits = DB.patientMaster.some(function(p){
-      return p.visitHistory.some(function(v){ return v.doctor === u.id; });
-    });
-    return !hasCharts && !hasVisits;
-  });
-
-  if (deletable.length === 0) {
-    notify('알림', '삭제 가능한 테스트 계정이 없습니다. (진료이력 없는 계정만 삭제 가능)', 'info');
-    return;
-  }
-
-  var names = deletable.map(function(u){ return u.name + ' (' + u.username + ')'; }).join(', ');
-  if (!confirm('다음 계정을 영구 삭제합니다:\n\n' + names + '\n\n진료이력 없는 ' + deletable.length + '개 계정이 삭제됩니다.\n\n계속하시겠습니까?')) return;
-
-  var now = new Date().toISOString();
-  deletable.forEach(function(u) {
-    DB.auditLog.push({
-      time: now, action: 'USER_DELETED_BATCH',
-      user: SESSION.user ? SESSION.user.username : '-',
-      name: SESSION.user ? SESSION.user.name : '-',
-      target: u.username, targetName: u.name, targetId: u.id,
-      ip: '192.168.1.xxx', note: '테스트 계정 일괄 삭제'
-    });
-  });
-
-  var ids = deletable.map(function(u){ return u.id; });
-  DB.users = DB.users.filter(function(u){ return ids.indexOf(u.id) === -1; });
-
-  notify('일괄 삭제 완료', deletable.length + '개 테스트 계정이 삭제되었습니다.', 'success');
-  renderScreen('users');
-}
 
 function renderPayment(el) {
   DB.currentScreen = 'payment';
@@ -8798,7 +8801,7 @@ function renderPayment(el) {
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
       '<div class="section-title" style="margin:0">💰 수납 관리</div>' +
       '<div class="btn-group">' +
-        '<button class="btn btn-outline" onclick="notify(\'일마감\',\'일마감 처리를 시작합니다.\',\'info\'")>📊 일마감 출력</button>' +
+        '<button class="btn btn-outline" onclick="generateDailyReport()">📊 일마감 출력</button>' +
         '<button class="btn btn-primary" onclick="openManualPayment()">+ 수납 등록</button>' +
       '</div>' +
     '</div>' +
@@ -9003,8 +9006,22 @@ function renderPaymentModal() {
             <div>• QR코드 또는 바코드 스캔 방식</div>
             <div>• 결제 완료 시 자동 승인 처리</div>
           </div>
-          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:13px" onclick="openSimplePayModal(${f.total})">
-            📱 간편결제 선택 & 결제 시작
+          <!-- QR 표시 영역 -->
+          <div id="simple-qr-section" style="display:none;margin-top:16px">
+            <div style="background:#f8fafd;border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center">
+              <div id="simple-qr-label" style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">QR코드를 앱으로 스캔하세요</div>
+              <div id="simple-qr-svg" style="display:inline-block;padding:8px;background:#fff;border:2px solid #000;border-radius:6px;margin-bottom:12px"></div>
+              <div style="font-size:12px;color:var(--text)">유효시간: <span id="simple-timer" style="font-family:var(--mono);font-weight:800;color:var(--danger)">03:00</span></div>
+              <div style="margin-top:10px">
+                <div id="simple-status-msg" style="font-size:12px;color:var(--text-muted)">앱을 열고 QR코드를 스캔하세요</div>
+                <div style="height:6px;background:#f0f2f5;border-radius:3px;overflow:hidden;margin-top:8px">
+                  <div id="simple-progress" style="height:100%;background:var(--primary);width:0%;transition:width 0.5s;border-radius:3px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:13px;margin-top:10px" onclick="startSimplePayQR(${f.total})">
+            📱 간편결제 시작 (QR 표시)
           </button>
         </div>
 
@@ -9049,16 +9066,46 @@ function renderPaymentModal() {
   selectPayMethodDynamic('card');
 }
 
-function selectPayMethodDynamic(method) {
-  ['cash','card','simple','later'].forEach(m => {
-    const btn = document.getElementById('pm-' + m);
-    const field = document.getElementById('pay-field-' + (m==='card'?'card':m==='simple'?'simple':m==='later'?'later':'cash'));
-    if(btn) {
-      btn.className = 'btn pay-method-btn' + (m === method ? ' btn-primary' : '');
-      btn.style.border = m === method ? '2px solid var(--primary)' : '2px solid var(--border)';
+function startSimplePayQR(amount) {
+  const qrSection = document.getElementById('simple-qr-section');
+  if (!qrSection) return;
+  qrSection.style.display = 'block';
+
+  // 기본 제공업체: 카카오페이
+  const provider = SIMPLE_PAY_PROVIDERS.find(p => p.id === 'kakao');
+  if (!provider) return;
+
+  const label = document.getElementById('simple-qr-label');
+  if (label) label.textContent = provider.name + ' 앱으로 QR코드를 스캔하세요';
+
+  const qrSvg = document.getElementById('simple-qr-svg');
+  if (qrSvg) qrSvg.innerHTML = buildQRSVG(provider.color);
+
+  // 타이머
+  let secs = 180;
+  const timerEl = document.getElementById('simple-timer');
+  const progressEl = document.getElementById('simple-progress');
+  const statusEl = document.getElementById('simple-status-msg');
+
+  if (window.simplePayTimer) clearInterval(window.simplePayTimer);
+  window.simplePayTimer = setInterval(() => {
+    secs--;
+    if (timerEl) timerEl.textContent = String(Math.floor(secs/60)).padStart(2,'0') + ':' + String(secs%60).padStart(2,'0');
+    if (progressEl) progressEl.style.width = ((180 - secs) / 180 * 100) + '%';
+    if (secs <= 0) {
+      clearInterval(window.simplePayTimer);
+      if (statusEl) statusEl.textContent = '시간 초과되었습니다. 다시 시도하세요.';
     }
-    if(field) field.style.display = m === method ? '' : 'none';
-  });
+  }, 1000);
+
+  // 결제 요청 (데모)
+  const orderId = 'ORD-' + Date.now();
+  if (statusEl) statusEl.textContent = '결제 요청 중...';
+  setTimeout(() => {
+    if (statusEl) statusEl.textContent = '앱을 열고 QR코드를 스캔하세요';
+  }, 1000);
+
+  // 실제 PG 연동 시 PaymentWebhookSimulator 대신 API 호출
 }
 
 function calcChange(received, total) {
@@ -9724,6 +9771,57 @@ function printPaymentReceipt() {
   notify('출력', '진료비 납부확인서를 출력합니다.', 'info');
 }
 
+function printPrescriptionForPatient() {
+  if (!currentPaymentPatient) {
+    notify('오류', '환자 정보가 없습니다.', 'error');
+    return;
+  }
+  
+  // 환자의 최신 처방 찾기
+  var prescriptions = DB.prescriptions || [];
+  var patientPrx = prescriptions.filter(function(p) {
+    return p.ptId === currentPaymentPatient.id && p.status !== 'cancelled';
+  }).sort(function(a, b) {
+    return new Date(b.issuedAt) - new Date(a.issuedAt);
+  });
+  
+  if (patientPrx.length === 0) {
+    notify('안내', '해당 환자의 처방 기록이 없습니다.', 'info');
+    return;
+  }
+  
+  // 최신 처방으로 모달 채우기
+  var latestPrx = patientPrx[0];
+  fillPrescriptionModal(latestPrx);
+  openModal('modal-prescription');
+  
+  notify('처방전 출력', currentPaymentPatient.name + '의 처방전을 준비했습니다.', 'success');
+}
+
+function fillPrescriptionModal(prx) {
+  if (!prx) return;
+  
+  // 모달 요소 채우기
+  document.getElementById('prx-doctor-name').textContent = prx.doctor || '-';
+  document.getElementById('prx-pt-name').textContent = prx.ptName || '-';
+  document.getElementById('prx-pt-dob').textContent = prx.ptDob ? prx.ptDob.substring(0,10) : '-';
+  document.getElementById('prx-date').textContent = prx.issuedAt ? prx.issuedAt.substring(0,10) : '-';
+  
+  // 약품 테이블 채우기 (간단히)
+  var tbody = document.querySelector('#prescription-print-area tbody');
+  if (tbody && prx.drugs) {
+    tbody.innerHTML = prx.drugs.map(function(drug) {
+      return '<tr>' +
+        '<td style="border:1px solid #ccc;padding:5px 8px">' + (drug.name || '') + '</td>' +
+        '<td style="border:1px solid #ccc;padding:5px 8px;text-align:center">' + (drug.dosage || '') + '</td>' +
+        '<td style="border:1px solid #ccc;padding:5px 8px;text-align:center">' + (drug.frequency || '') + '</td>' +
+        '<td style="border:1px solid #ccc;padding:5px 8px;text-align:center">' + (drug.days || '') + '</td>' +
+        '<td style="border:1px solid #ccc;padding:5px 8px">' + (drug.instruction || '') + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+}
+
 function buildQRSVG(accentColor) {
   var cells = '';
   var size = 21, cellSize = 8, pad = 4;
@@ -9960,6 +10058,147 @@ async function cancelReservationBackend(id) {
     return true;
   }
   return false;
+}
+
+// ─── DAILY REPORT (일마감 출력) ──────────────────────────
+function generateDailyReport() {
+  const today = new Date().toISOString().substring(0, 10);
+  const pays = DB.payments || [];
+  const todayPays = pays.filter(p => p.date === today && p.status === '완료');
+  const totalRevenue = todayPays.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const cashPays = todayPays.filter(p => p.method === '현금');
+  const cardPays = todayPays.filter(p => p.method === '카드');
+  const simplePays = todayPays.filter(p => p.method === '간편결제');
+
+  const patients = DB.patients || [];
+  const todayVisits = patients.filter(p => p.registered && p.registered.startsWith(today));
+  const completedVisits = todayVisits.filter(p => p.status === '완료');
+
+  const prescriptions = DB.prescriptions || [];
+  const todayRx = prescriptions.filter(rx => rx.date === today);
+
+  // 보고서 HTML 생성
+  const reportHtml = `
+    <div style="font-family: var(--font); max-width: 600px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: var(--primary); margin: 0;">🏥 정동병원 일마감 보고서</h2>
+        <p style="color: var(--text-muted); margin: 5px 0;">${today} (기준: 결제 완료 시점)</p>
+      </div>
+
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <h3 style="margin: 0 0 10px 0; color: var(--primary);">💰 수납 현황</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold;">${todayPays.length}건</div>
+            <div style="font-size: 12px; color: var(--text-muted);">총 수납</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold;">₩${(totalRevenue / 10000).toFixed(1)}M</div>
+            <div style="font-size: 12px; color: var(--text-muted);">총 금액</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold;">${completedVisits.length}명</div>
+            <div style="font-size: 12px; color: var(--text-muted);">진료 완료</div>
+          </div>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px;">
+          <div>현금: ${cashPays.length}건 (₩${cashPays.reduce((s, p) => s + p.amount, 0).toLocaleString()})</div>
+          <div>카드: ${cardPays.length}건 (₩${cardPays.reduce((s, p) => s + p.amount, 0).toLocaleString()})</div>
+          <div>간편결제: ${simplePays.length}건 (₩${simplePays.reduce((s, p) => s + p.amount, 0).toLocaleString()})</div>
+        </div>
+      </div>
+
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <h3 style="margin: 0 0 10px 0; color: var(--primary);">👥 진료 현황</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold;">${todayVisits.length}명</div>
+            <div style="font-size: 12px; color: var(--text-muted);">총 접수</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 18px; font-weight: bold;">${todayRx.length}건</div>
+            <div style="font-size: 12px; color: var(--text-muted);">처방 발행</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+        <h4 style="margin: 0 0 10px 0; color: #856404;">📋 보고 상태</h4>
+        <div style="font-size: 12px; color: #856404;">
+          <div>• 심평원 청구: 준비 완료 (자동 전송 예정)</div>
+          <div>• 세무서 보고: 준비 완료 (월말 일괄 전송)</div>
+          <div>• 감사 로그: ${DB.auditLog.filter(l => l.time.startsWith(today)).length}건 기록됨</div>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px; font-size: 11px; color: var(--text-muted);">
+        정동병원 EMR 시스템 © 2026 | 출력일시: ${new Date().toLocaleString('ko-KR')}
+      </div>
+    </div>
+  `;
+
+  // 모달에 표시
+  const modalBody = document.getElementById('daily-report-body');
+  if (modalBody) {
+    modalBody.innerHTML = reportHtml;
+    openModal('modal-daily-report');
+  } else {
+    // 모달이 없으면 새로 생성
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'modal-daily-report';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+          <div class="modal-title">📊 일마감 보고서</div>
+          <button class="modal-close" onclick="closeModal('modal-daily-report')">×</button>
+        </div>
+        <div class="modal-body" id="daily-report-body">${reportHtml}</div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="printDailyReport()">🖨 인쇄</button>
+          <button class="btn btn-outline" onclick="exportDailyReport()">📤 내보내기</button>
+          <button class="btn btn-ghost" onclick="closeModal('modal-daily-report')">닫기</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    openModal('modal-daily-report');
+  }
+
+  notify('일마감 보고서', '오늘의 일마감 보고서를 생성했습니다.', 'success');
+}
+
+function printDailyReport() {
+  const reportContent = document.getElementById('daily-report-body').innerHTML;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>정동병원 일마감 보고서</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h2, h3, h4 { color: #333; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+          .center { text-align: center; }
+        </style>
+      </head>
+      <body>${reportContent}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
+}
+
+function exportDailyReport() {
+  const reportContent = document.getElementById('daily-report-body').innerText;
+  const blob = new Blob([reportContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `일마감보고서_${new Date().toISOString().substring(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  notify('내보내기 완료', '보고서가 텍스트 파일로 저장되었습니다.', 'success');
 }
 
 function openReservationModal(dateStr) {

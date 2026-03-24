@@ -431,6 +431,7 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-payment')">닫기</button>
       <button class="btn btn-outline" onclick="printPaymentReceipt()">🖨 명세서 출력</button>
+      <button class="btn btn-outline" onclick="printPrescriptionForPatient()">🖨 처방전 출력</button>
       <button class="btn btn-primary" onclick="processPayment()" style="min-width:140px" id="pay-confirm-btn">✓ 수납 완료</button>
     </div>
   </div>
@@ -1211,6 +1212,22 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 일마감 보고서 모달 ─── -->
+<div class="modal-overlay" id="modal-daily-report">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <div class="modal-title">📊 일마감 보고서</div>
+      <button class="modal-close" onclick="closeModal('modal-daily-report')">×</button>
+    </div>
+    <div class="modal-body" id="daily-report-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="printDailyReport()">🖨 인쇄</button>
+      <button class="btn btn-outline" onclick="exportDailyReport()">📤 내보내기</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-daily-report')">닫기</button>
     </div>
   </div>
 </div>

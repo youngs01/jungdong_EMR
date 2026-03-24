@@ -446,6 +446,3 @@
   .amend-diff-old { text-decoration:line-through;color:var(--danger);background:#ffebee;padding:2px 4px;border-radius:2px;display:block;margin-bottom:2px; }
   .amend-diff-new { color:var(--success);background:#e8f5e9;padding:2px 4px;border-radius:2px;display:block; }
   .chart-new-banner { background:#e3f2fd;border:1.5px solid #90caf9;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:12px; }
-    'h2{text-align:center;font-size:16px;border-bottom:2px solid #000;padding-bottom:8px}' +
-    '.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dotted #ccc}' +
-    '.label{color:#666}.val{font-weight:600}' +
